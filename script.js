@@ -1,5 +1,5 @@
 // 📌 URL de tu API de Google Apps Script
-const apiURL = "https://script.google.com/macros/s/AKfycbzdAp3LAY0HtBsQm4sO89Qg3MYDRTrw5kQKibR_j27y-RaxlqX8-GkojVnvV5VrJpF8/exec";
+const apiURL = "https://script.google.com/macros/s/AKfycbwMIxvvXccnbGhQ8kcROuCIAMa9RJebX-UU76x8l9EwWA2yueN0sW-k3_pLL46iuYbF/exec";
 
 
 let studentsData = [];
