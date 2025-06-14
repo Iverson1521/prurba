@@ -1,6 +1,5 @@
 // 📌 URL de tu API de Google Apps Script
-const apiURL = "https://script.google.com/macros/s/AKfycbwMIxvvXccnbGhQ8kcROuCIAMa9RJebX-UU76x8l9EwWA2yueN0sW-k3_pLL46iuYbF/exec";
-
+const apiURL = "https://script.google.com/macros/s/AKfycbxfI5Funx67YyEzfpZiJTUXDeV_rB9vgKaprLLfbtOK651HI0qtLS2IPaPIgEfAO6BO/exec";
 
 let studentsData = [];
 let currentStudents = [];
@@ -22,8 +21,8 @@ function setupEventListeners() {
     document.getElementById('institucion').addEventListener('change', handleInstitucionChange);
     document.getElementById('sede').addEventListener('change', handleSedeChange);
     document.getElementById('jornada').addEventListener('change', handleJornadaChange);
-    document.getElementById('grupo').addEventListener('change', handleGrupoChange);
     document.getElementById('grado').addEventListener('change', handleGradoChange);
+    document.getElementById('grupo').addEventListener('change', handleGrupoChange);
     document.getElementById('studentForm').addEventListener('submit', handleStudentFormSubmit);
 }
 
@@ -55,7 +54,8 @@ function handleInstitucionChange() {
             sedeSelect.appendChild(option);
         });
     }
-    resetFilters(['jornada', 'grupo', 'grado']);
+
+    resetFilters(['jornada', 'grado', 'grupo']);
 }
 
 function handleSedeChange() {
@@ -76,43 +76,21 @@ function handleSedeChange() {
             jornadaSelect.appendChild(option);
         });
     }
-    resetFilters(['grupo', 'grado']);
+
+    resetFilters(['grado', 'grupo']);
 }
 
 function handleJornadaChange() {
     const institucion = document.getElementById('institucion').value;
     const sede = document.getElementById('sede').value;
     const jornada = document.getElementById('jornada').value;
-    const grupoSelect = document.getElementById('grupo');
-    grupoSelect.innerHTML = '<option value="">Seleccionar grupo...</option>';
-    grupoSelect.disabled = !jornada;
-
-    if (jornada) {
-        const grupos = [...new Set(studentsData.filter(s => 
-            s.institucion === institucion && s.sede === sede && s.jornada === jornada
-        ).map(s => s.grupo))].sort();
-        grupos.forEach(grupo => {
-            const option = document.createElement('option');
-            option.value = grupo;
-            option.textContent = `Grupo ${grupo}`;
-            grupoSelect.appendChild(option);
-        });
-    }
-    resetFilters(['grado']);
-}
-
-function handleGrupoChange() {
-    const institucion = document.getElementById('institucion').value;
-    const sede = document.getElementById('sede').value;
-    const jornada = document.getElementById('jornada').value;
-    const grupo = document.getElementById('grupo').value;
     const gradoSelect = document.getElementById('grado');
     gradoSelect.innerHTML = '<option value="">Seleccionar grado...</option>';
-    gradoSelect.disabled = !grupo;
+    gradoSelect.disabled = !jornada;
 
-    if (grupo) {
+    if (jornada) {
         const grados = [...new Set(studentsData.filter(s => 
-            s.institucion === institucion && s.sede === sede && s.jornada === jornada && s.grupo === grupo
+            s.institucion === institucion && s.sede === sede && s.jornada === jornada
         ).map(s => s.grado))].sort();
         grados.forEach(grado => {
             const option = document.createElement('option');
@@ -121,11 +99,54 @@ function handleGrupoChange() {
             gradoSelect.appendChild(option);
         });
     }
+
+    resetFilters(['grupo']);
 }
 
 function handleGradoChange() {
+    const institucion = document.getElementById('institucion').value;
+    const sede = document.getElementById('sede').value;
+    const jornada = document.getElementById('jornada').value;
     const grado = document.getElementById('grado').value;
+    const grupoSelect = document.getElementById('grupo');
+    grupoSelect.innerHTML = '<option value="">Seleccionar grupo...</option>';
+    grupoSelect.disabled = !grado;
+
     if (grado) {
+        const grupos = [...new Set(
+            studentsData
+                .filter(s =>
+                    s.institucion === institucion &&
+                    s.sede === sede &&
+                    s.jornada === jornada &&
+                    s.grado === grado &&
+                    s.grupo
+                )
+                .map(s => s.grupo.toString().trim())
+        )].sort();
+
+        grupos.forEach(grupo => {
+            const option = document.createElement('option');
+            option.value = grupo;
+            option.textContent = `Grupo ${grupo}`;
+            grupoSelect.appendChild(option);
+        });
+
+        // ✅ Selección automática si solo hay un grupo
+        if (grupos.length === 1) {
+            grupoSelect.value = grupos[0];
+            handleGrupoChange();
+        }
+    }
+
+    document.getElementById('studentsSection').style.display = 'none';
+    document.getElementById('observationsSection').style.display = 'none';
+}
+
+
+function handleGrupoChange() {
+    const grupo = document.getElementById('grupo').value;
+    if (grupo) {
         loadStudents();
         document.getElementById('studentsSection').style.display = 'block';
         document.getElementById('observationsSection').style.display = 'block';
@@ -150,15 +171,15 @@ function loadStudents() {
         institucion: document.getElementById('institucion').value,
         sede: document.getElementById('sede').value,
         jornada: document.getElementById('jornada').value,
-        grupo: document.getElementById('grupo').value,
-        grado: document.getElementById('grado').value
+        grado: document.getElementById('grado').value,
+        grupo: document.getElementById('grupo').value
     };
     currentStudents = studentsData.filter(student => 
         student.institucion === filters.institucion &&
         student.sede === filters.sede &&
         student.jornada === filters.jornada &&
-        student.grupo === filters.grupo &&
-        student.grado === filters.grado
+        student.grado === filters.grado &&
+        student.grupo?.toString().trim() === filters.grupo
     );
     displayStudents(currentStudents);
     updateAttendanceCount();
@@ -181,7 +202,7 @@ function createStudentCard(student) {
             <h3>${student.nombre}</h3>
             <p>📄 Doc: ${student.documento} | 🎂 Edad: ${student.edad}</p>
         </div>
-        <select class="attendance-select ${student.asistencia}" onchange="updateAttendance(${student.id}, this.value)">
+        <select class="attendance-select ${student.asistencia}" onchange="updateAttendance('${student.documento}', this.value)">
             <option value="presente" ${student.asistencia === 'presente' ? 'selected' : ''}>✅ Presente</option>
             <option value="ausente" ${student.asistencia === 'ausente' ? 'selected' : ''}>❌ Ausente</option>
             <option value="retirado" ${student.asistencia === 'retirado' ? 'selected' : ''}>🚪 Retirado</option>
@@ -191,7 +212,7 @@ function createStudentCard(student) {
 }
 
 function updateAttendance(studentId, attendance) {
-    const student = studentsData.find(s => s.id === studentId);
+    const student = studentsData.find(s => s.documento === studentId);
     if (student) {
         student.asistencia = attendance;
         updateAttendanceCount();
